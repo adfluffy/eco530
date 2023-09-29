@@ -1,0 +1,64 @@
+\usepackage{amsmath} %even more math
+\usepackage{amsthm} %for theorems
+\usepackage{array}
+\usepackage{authblk}
+\usepackage[english]{babel}
+\usepackage{calc}
+\usepackage{caption}
+\usepackage[usenames,dvipsnames]{color} % Required for custom colors
+\usepackage{dcolumn}
+\usepackage{enumitem,linegoal} % Used for alphabetical lists instead of numbered lists in {itemize}
+\usepackage{extramarks} % Required for headers and footers
+\usepackage{fancyhdr} % Required for custom headers
+\usepackage{float}
+\usepackage{framed}
+\usepackage[margin=1in]{geometry} %1 inch margins
+\usepackage{graphicx} % Required to insert images \includegraphic
+\usepackage[hidelinks]{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage{lastpage} % Required to determine the last page for the footer
+\usepackage{listings} % Required for insertion of code
+\usepackage{longtable}
+\usepackage{mathtools} %math things
+\usepackage{multirow,bigdelim}% allows tables to have a column spanning multiple rows
+\usepackage[round]{natbib} %for soc sci bibliography
+\usepackage{outlines}
+\usepackage{pgfgantt}
+\usepackage{pdflscape}
+\usepackage{pgfplots} % packages for graphing
+\usepackage[section]{placeins}
+\usepackage{rotating} %lets you rotate floats (tables, figures) pages
+\usepackage{sectsty}
+\usepackage{setspace}
+\usepackage{siunitx} %units! 
+\usepackage{subcaption} %allows for subtables and subfigures
+\usepackage{tikz} % packages for graphing
+\usepackage{titlesec}
+\usepackage{todonotes} %gives missing figure
+
+\allsectionsfont{\singlespacing}
+\DeclareMathOperator{\Lagr}{\mathcal{L}}
+\DeclareMathOperator{\sumn}{\sum_{i=1}^n}
+\DeclareMathOperator{\bh}{\hat{\beta}}
+\DeclareMathOperator{\yh}{\hat{y}}
+\DeclareMathOperator{\ybar}{\bar{y}}
+\DeclareMathOperator{\xbar}{\bar{x}}
+\graphicspath{ {figures/} }
+\linespread{2}
+\newcommand{\mathnode}[1]{%
+	\mathord{\tikz[baseline=(#1.base), inner sep = 0pt]{\node (#1) {$#1$};}}}
+\setcounter{secnumdepth}{4}
+\tikzset{every picture/.style=remember picture}
+\renewcommand{\theenumi}{\Roman{enumi}. }
+\renewcommand{\labelenumi}{\theenumi}
+\renewcommand{\theenumii}{\Alph{enumii}. }
+\renewcommand{\labelenumii}{\theenumii}
+\renewcommand{\theenumiii}{\roman{enumiii}. }
+\renewcommand{\labelenumiii}{\theenumiii}
+\renewcommand{\theenumiv}{\alph{enumiv}) }
+\renewcommand{\labelenumiv}{\theenumiv}
+\usetikzlibrary{arrows} % packages for graphing
+\usetikzlibrary{calc} % packages for graphing
+\usetikzlibrary{decorations.pathreplacing} % packages for graphing
+\usetikzlibrary{shapes.geometric}
+\usetikzlibrary{shapes.misc}

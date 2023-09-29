@@ -1,0 +1,408 @@
+---
+title: "ECO 530 - Exercise 1"
+author: "Fall 2023 - JG Malacarne"
+output: html_document
+---
+
+
+
+# Q1 
+
+Consider the function: $$y=f(x)=8\cdot x-3 $$
+
+\       
+
+a. Evaluate $f(x)$ at $x=3$
+
+
+\
+\
+\
+
+b. What is the slope of the function?
+
+\
+\
+\
+
+c. How does the slope of the function at $x=3$ compare to the slope of the function at $x=6$
+
+
+\
+
+\
+
+\
+
+
+# Q2 
+
+Consider the function: $$y=f(x)= 3 - x + 2\cdot x^2$$
+
+\       
+
+a. Evaluate $f(x)$ at $x=3$
+
+
+\
+\
+\
+
+b. What is the slope of the function?
+
+\
+\
+\
+
+c. How does the slope of the function at $x=3$ compare to the slope of the function at $x=6$
+
+
+\
+\
+\
+
+d. Does this function have a maximum or a minimum? What is it?
+
+
+\
+
+\
+
+\
+
+
+
+# Q3 
+
+Consider the function: $$ y=f(x,z)=100+3\cdot x^2 + 2\cdot z - 5\cdot x \cdot z $$
+
+\
+
+
+a. Define and derive the two elements below:  
+$$\frac{\partial y}{\partial x} \quad \quad \quad \frac{\partial y}{\partial z} $$ 
+
+\
+
+\
+
+\
+
+b. Define and derive the two elements below:}  
+$$\frac{\partial^2 y}{\partial x^2} \quad \quad \quad \frac{\partial^2 y}{\partial z \partial x} $$ 
+
+\
+
+\
+
+\
+
+
+# Q4
+
+Evaluate the following expressions. Show your work where necessary.
+
+\
+\
+\
+
+a. $\sum_{y=1}^{10} y$
+
+\
+
+\
+
+b. $\sum_{i=1}^{10} 5$    (or, more generally, any constant $c$)
+
+
+\
+
+\
+
+c.  $\frac{d f}{d x}$ where $f(x) = (12x+3)(6x^2+8x-x^3)$ 
+
+
+\
+\
+
+
+d.  $\frac{d f}{d x}$ where $f(x) = \frac{12x+3}{(6x^2+8x-x^3)}$ 
+
+\
+\
+
+e.  $\frac{d f}{d x}$ where $f(x) = e^{-6x+2}$ 
+
+
+\
+\
+\
+
+
+
+# Q5 
+
+Indicate whether the following expressions are correct or incorrect. If incorrect, briefly explain why.
+
+\
+\
+
+a.  $log(x^\beta)=\beta\cdot log(x)$
+
+\
+\
+\
+
+b. $log(0) = 1$
+
+\
+
+\
+
+c. $log(6x) = 6\cdot log(x)$
+
+\
+\
+
+
+d. $log(xyz) = log(x) + log(y) + log(z)$
+
+
+\
+\
+
+
+e. $log(x^2) = log(x)log(x)$
+
+
+\
+\
+
+
+f. $\sum_{i=1}^{100} \left( X_i + Y_i + Z_i \right)=  \sum_{i=1}^{100} X_i + \sum_{i=1}^{100} Y_i + \sum_{i=1}^{100} Z_i$
+
+\
+\
+
+g. $\sum_{i=1}^{100} \left( X_i \cdot Y_i + Z_i \right)=  \sum_{i=1}^{100} X_i \cdot \sum_{i=1}^{100} Y_i + \sum_{i=1}^{100} Z_i$
+
+\
+\
+
+h. $\lim_{n \to \infty} \frac{6}{n} = 0$
+
+\
+\
+
+
+i. $\lim_{n \to \infty} \frac{6n^2+n}{n^2} = 0$
+
+
+\
+\
+
+
+j. $\prod_{i=1}^5 y_i = y_1 \cdot y_2 \cdot y_3 \cdot y_4 \cdot y_5$
+
+\
+
+\
+
+
+k. $\prod_{i=1}^5 e^{y_i} = e^{(y_1 + y_2 + y_3 + y_4 + y_5)}$
+
+
+\
+
+\
+
+\
+
+
+
+## For the Questions that Follow:
+
+Assume that the $X$,$Y$, and $Z$ are independent random variables with expected values $\mu_X$, $\mu_Y$, and $\mu_Z$ and variances $\sigma^2_X$, $\sigma^2_Y$, and $\sigma^2_Z$ respectively.
+
+\
+
+\
+
+# Q6
+
+Let $W$ be a new random variable defined as:
+$$ W = 6X + Y - Z $$
+
+
+a. What is $E[W]$?
+
+\
+\
+
+b.  What is $\sigma^2_W$?
+
+
+\
+
+\
+
+\
+
+# Q7
+
+Let R be a new random variable defined as:
+$$R = Y - 12 $$
+
+\
+\
+
+a. What is $E[R]$?
+
+
+\
+
+\
+
+b. What is $\sigma^2_R$? 
+
+\
+
+\
+
+c. Assume that $Y$ was normally distributed. Sketch the probability density functions for $Y$ and $R$. 
+
+\
+
+\
+
+\
+
+# Q8
+
+Let Q be a new random variable defined as:
+$$Q = \frac{Z - \mu_Z}{\sigma_Z} $$
+
+\
+
+\
+
+a. What is $E[Q]$?
+
+\
+
+\
+
+b. What is $\sigma^2_Q$?
+
+\
+
+\
+
+c. Assume that $Y$ was normally distributed. Sketch the probability density function for $Z$ and $Q$.
+
+
+\
+
+\
+
+\
+
+
+# R Exercises
+
+Write a script that allows you to answer the questions below. Submit both a text version of your answers and the (heavily commented) script that you used to generate your answers.
+
+## R1
+
+a. Load the tidyverse and vtable libraries.
+b. Set pathways to the ``data'', ``scripts'', and ``tables and figures'' folders associated with Exercise 1.
+c. Change the directory to the ``data'' folder and read in the ``cars.csv'' data file.
+d. Use the summary table command (\textit{st()}) to report the contents of the data.
+
+\
+
+\
+
+
+
+## R2 
+
+Starting with the ``cars'' data frame:
+
+\
+
+a. Use `group_by()` and summarize() to create a data frame called ``summary'' containing the average price, mpg, and weight of Foreign/Domestic cars in the data.
+b. Use `kable()` to make a nicely formatted version of your ``summary()'' data frame. 
+c. Make a new data frame containing only Domestic Cars called "domestic.cars"
+d. Add a variable (using the mutate() function) to the domestic.cars data frame that is equal to ``price'' divided by ``mpg''.
+
+\
+
+\
+
+
+
+## R3  
+
+Generate vectors containing 250 draws from each of the following normal distributions: 
+
+- $var1 \sim N(3,1)$
+
+- $var2 \sim N(-1,2)$ 
+
+- $var3 \sim N(2,3)$
+
+\
+
+Place all three variables in a data frame together called ``random.draws''. Include in your data frame a variable called "id" that indicates an observations row number.
+
+\
+\
+\
+
+# R4
+
+Generate a scatter plot of `var1`. Make sure that your scatter plot has a title and informative labels on the axes.
+
+\
+
+\
+
+\
+
+# R5
+Generate a density plot of `var2`. Choose a fill color different than ggplot()'s default.
+
+\
+
+\
+
+\
+
+
+# R6
+
+Create a new variable in your data frame called `var4` that is equal to the sum of the other three.
+
+\
+\
+a. Where do you expect it's density to be centered when you plot it?
+	
+\
+\
+b. Create a density plot of your new variable, placing a dashed, vertical line at it's expected value.
+
+\
+\
+\
+
+# R7
+
+Create a new variable in your data frame called `var5` by subtracting one from each element in `var3` and dividing each element by 2.
+
+a. Where do you expect the new variable's density to be centered? 
+	
+b. How else do you expect it to change? 
+	
+c. Create a density plot of your new variable placing a dashed, vertical line at it's expected value.
+

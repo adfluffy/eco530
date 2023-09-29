@@ -1,0 +1,199 @@
+---
+title: "ECO 530 - Fall 2023 <br> \nExercise 3\n"
+author: "JG Malacarne"
+date: 'Due: Oct 6, 2023'
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+library(modelsummary)
+library(tidyverse)
+library(lmtest)
+library(sandwich)
+library(estimatr)
+library(vtable)
+library(kableExtra)
+
+
+## Graph Stuff
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+cbPalettet <- c("#99999950", "#E69F0050", "#56B4E950", "#009E7350", "#F0E44250", "#0072B250", "#D55E0050", "#CC79A750")
+
+```
+
+<style type="text/css">
+  body{
+  font-size: 14pt;
+}
+</style>
+
+\DeclareMathOperator{\Lagr}{\mathcal{L}}
+\DeclareMathOperator{\sumn}{\sum_{i=1}^n}
+\DeclareMathOperator{\bh}{\hat{\beta}}
+\DeclareMathOperator{\yh}{\hat{y}}
+\DeclareMathOperator{\ybar}{\bar{y}}
+\DeclareMathOperator{\xbar}{\bar{x}}
+\usepackage{amsmath}
+
+# Instructions
+
+Complete the exercises below using the Nicaragua Rural Business Development Data (NicaRBD.RData). Be sure to show all of your work. For this assignment, you can submit:
+
+- A PDF containing your written answers, tables, and figures along with the R script that generates them
+
+- A PDF document containing your written answers with the R code embedded in the document. 
+
+
+\
+
+
+\
+
+
+# Q1 
+
+**In this assignment, we are going to explore the relationship between technical efficiency in maize production (`te_maize`) and food expenditure (`food.expend`). We will also consider the relationships between access to credit (`couldgetloan`), holding formal land title (`writtentitle`) and food expenditure**.
+
+\
+
+**Begin by creating a dataframe for which there are no missing observations in the variables on which we will base our analysis (`te_maize`,`food.expend`,`couldgetloan`,`writtentitle`)**
+
+\
+
+
+\
+
+\
+
+
+\
+
+**Now, summarize the technical efficiency and food expenditure variables for me. You should do this in the form of a paragraph. Please also present a table or figure. Your table or figure should treat each variable separately.**
+
+\
+
+\
+
+\
+
+\
+
+\
+
+**After you have summarized each variable separately, create a scatter plot depicting the relationship between technical efficiency in maize production and food expenditure. Describe any relationship visible in your plot in a few sentences.**
+
+
+\
+
+\
+
+\
+
+\
+
+\
+
+# Q2
+
+**We want to study:**
+
+$$E[f_i|te_i] = \beta_0 + \beta_1 te_i$$
+
+**Where, $f_i$ is food expenditure for individual $i$ and $te_i$ is the technical efficiency measure for individual $i$. Building off our usual model:**
+
+$$ f_i = E[f_i|te_i] + \epsilon_i$$
+
+$$\begin{equation} 
+\tag{1} \label{eqn:q2}
+	f_i = \beta_0 + \beta_1 te_i + \epsilon_i
+\end{equation}$$
+
+**Using Ordinary Least Squares, estimate Equation \ref{eqn:q2}. Interpret your estimate of $\bh_1$ in words. Present your results in both a table and using a coefficient plot. In your table, please limit the "statistics" reported at the bottom to only the number of observations (N).**
+
+
+
+\
+
+\
+
+\
+
+\
+
+\
+
+
+# Q3 
+
+**Estimate the following two relationships separately.**
+
+- **How does having credit access (couldgetloan=1) relate to food expenditure?**
+
+- **How does having formal title to your land (writtentitle=1) relate to food expenditure?**
+
+- **Caution: You will need to make some changes to the writtentitle variable prior to running your regression. **
+
+
+\
+
+**Present the results of both specifications in either a table or a coefficient plot. Discuss both estimates. Which is associated with a larger change in food expenditure?**
+
+
+\
+
+\
+
+\
+
+\
+
+
+# Q4
+
+**Use Ordinary Least Squares to estimate the relationship depicted below:**
+
+$$te_i = \gamma_0 + \gamma_1 loan_i + v_i$$
+
+**Where $te_i$ is the technical efficiency in maize production for individual $i$ and $loan_i$ is equal to one if individual $i$ could obtain a formal loan.**
+
+\
+
+**Present and discuss your results.**
+
+\
+
+\
+
+\
+
+\
+
+\
+
+
+# Q5
+
+**One way to represent the relationship you estimated in Q4 is as**
+
+$$\gamma_1 = E[te_i|loan_i = 1] - E[te_i|loan_i =0]$$
+
+**Do you think the $\hat{\gamma}_1$ you obtained in $Q4$ is a good estimate of the relationship between credit access and technical efficiency? Draw a DAG to support your position.**
+
+
+\
+
+\
+
+\
+
+\
+
+\
+
+
+
+
+
+

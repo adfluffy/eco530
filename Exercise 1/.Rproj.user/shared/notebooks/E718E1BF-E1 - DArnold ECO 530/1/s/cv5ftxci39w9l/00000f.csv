@@ -1,0 +1,8 @@
+"0","    # Creates a density plot of var2 with a craaaazy custom color (not default)"
+"0","    dens <- ggplot(data=random.draws, aes(x=var2)) +"
+"0","      geom_density(fill=""#ff38fc"",color=""#ff38fc"") +"
+"0","      labs(x=""Var2"","
+"0","           title =""Density Plot of Var2"")"
+"0","    "
+"0","    # Displays the plot"
+"0","    dens"
