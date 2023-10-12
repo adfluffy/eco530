@@ -46,8 +46,8 @@ census.data <- data.frame()
 census.usable <- data.frame(matrix(data = NA,nrow=0,ncol=5))
 
 YEAR <- (2010:2019)
-SCHL <- c("bb",as.character(1:24))
-COW <- c("b",as.character(1:9))
+SCHL <- c(as.character(0:24))
+COW <- c(as.character(0:9))
 
 ################################################################################
 # Legacy Method to get census data from Census API
@@ -136,6 +136,10 @@ for(i in YEAR){
 colnames(census.usable) <- c("YEAR", "STATE", "SCHL","COW")
 
 # Creates calculated WAGP values from raw census data to apply to census.usable
+bad_cow <- c("")
+bad_schl <- c("")
+bad_state <- c("")
+
 for(i in 1:nrow(census.usable)){
   # Primes the target year for later use
   tar_year <- census.usable$YEAR[i]
@@ -146,15 +150,36 @@ for(i in 1:nrow(census.usable)){
     # If false, loads the census data for the appropriate year
     target_file <- paste(datapath,"/censusdata(",tar_year,").Rda",sep="")
     load(target_file)
+    # Converts 2017 and later ACS survey results to the numerical responses consistent
+    # With 2016 and prior data files
+    if(tar_year >= 2017){
+      # Replaces bb and b values in SCHL and COW, respectively, with 0
+      census.data$SCHL[census.data$SCHL=="bb"] <- "0"
+      census.data$COW[census.data$COW=="b"] <- "0"
+      # Converts to integer and then back to character to remove leading 0's
+      census.data$SCHL <- as.character(as.integer(census.data$SCHL))
+      census.data$COW <- as.character(as.integer(census.data$COW))
+    }
   }
+  
   # Creates variables for filtering of raw census data from the category of current iteration
   tar_cow <- census.usable$COW[i]
   tar_schl <- census.usable$SCHL[i]
   tar_state <- census.usable$STATE[i]
+  
+  # Tests for mismatches in expected data values and actual values
+  test_cow <- tar_cow %in% census.data$COW
+  if (!test_cow){bad_cow <- append(bad_cow,paste(tar_cow,tar_year,sep=" "))}
+  test_schl <- tar_schl %in% census.data$SCHL
+  if (!test_schl){bad_schl <- append(bad_schl,paste(tar_schl,tar_year,sep=" "))}
+  test_state <- tar_state %in% census.data$ST
+  if (!test_state){bad_state <- append(bad_state,paste(tar_state,tar_year,sep=" "))}
+  
   # Creates a temporary data frame of all raw census values for a certain STATE, SCHL, COW variables
   temp.data <- filter(census.data,COW == tar_cow & SCHL == tar_schl & ST == tar_state)
   # Coverts WAGP to an integer value for mathematical manipulation
   temp.data$WAGP <- as.integer(temp.data$WAGP)
+
   
   # Creates a sum total, count of observations, and average value for WAGP in temp.data
   cat_sum <- sum(temp.data$WAGP)
@@ -169,3 +194,5 @@ for(i in 1:nrow(census.usable)){
 
 # Saves the census.usable data frame 
 save(census.usable,file = "censususable.Rda")
+nrow(census.usable[census.usable$WAGP.CouNT==0])
+
