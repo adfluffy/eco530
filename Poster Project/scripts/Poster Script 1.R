@@ -1,6 +1,6 @@
 # Author: Devan Arnold
 # Date: 10/10/23
-# Updated: 10/12/23
+# Updated: 10/13/23
 #
 # Created to assist with the creation of economic analysis for a poster presentation
 # Project as part of ECO 530 offered at the University of Maine. 
@@ -50,66 +50,65 @@ SCHL <- c(as.character(0:24))
 COW <- c(as.character(0:9))
 
 ################################################################################
-# Legacy Method to get census data from Census API
+# Get Raw Census Data and save to machine
 ################################################################################
 # Starts a for loop to iterate over desired years of data
-#for(i in YEAR){
-# Uses TodyCensus package to query data from us census bureau and adds the year to the 
-# resulting data frame
-#  census.data <- get_pums(variables = c("ST","COW","SCHL","WAGP"),year=i,state = "all",survey = "acs1")
-#  census.data$year <- i
-#  
-# Takes state identifiers from census data frame and stores as a vector
-#  STATE <- unique(census.data$ST)
-# Creates variable for assignment to census.usable data frame later
-#  dis_year <- i
-#
-# Loops over YEAR, STATE, SCHL, and COW values to create all possible categories 
-# from the ACS 1 year survey for each year of data
-#  for(j in 1:length(STATE)){
-# Similar to dis_year but for state identifiers
-#    dis_state <- STATE[j]
-#     
-#     for(k in 1:length(SCHL)){
-# Similar to dis_year but for years of schooling
-#       dis_schl <- SCHL[k]
-#       
-#       for(l in 1:length(COW)){
-# Similar to dis_year but for class of worker
-#         dis_COW <- COW[l]
-#         
-#         Creates a temporary data frame containing values for a certain year and 
-#         STATE/SCHL/COW combimation, then transforms the WAGP term into an integer
-#         temp.data <- filter(census.data,COW == dis_COW & SCHL == dis_schl & ST == dis_state)
-#         temp.data$WAGP <- as.integer(temp.data$WAGP)
-#         
-#         Creates a mean WAGP value for the category
-#         dis_wagp <- round(mean(temp.data$WAGP),digits=0)
-#         
-#         Handles the NaN case
-#         if(is.nan(dis_wagp)){
-#           dis_wagp <- NA
-#         }
-#         
-#         Creates a row vector for binding to census.usable data frame
-#         newor <- c(dis_year,dis_state,dis_schl,dis_COW,dis_wagp)
-#         Applies the new row to the census.usbale data frame
-#         census.usable <- rbind(census.usable,newor)
-#       }
-#     }
-#   }
-#   
-#   Names the census.usable data frame columns
-#   colnames(census.usable) <- c("YEAR", "STATE", "SCHL","COW","WAGP")
-#   Saves the census.usbale frame and the census data for a certain year
-#   save(census.usable,file = "censususable.Rda")
-#   save(census.data,file = paste("censusdata(",i,").Rda",sep = ""))
-# }
-################################################################################
+for(i in YEAR){
+  # Uses TidyCensus package to query data from us census bureau and adds the year to the 
+  # resulting data frame
+  census.data <- get_pums(variables = c("ST","COW","SCHL","WAGP"),year=i,state = "all",survey = "acs1")
+  census.data$year <- i
+  
+  #Takes state identifiers from census data frame and stores as a vector
+  STATE <- unique(census.data$ST)
+  # Creates variable for assignment to census.usable data frame later
+  dis_year <- i
+
+  # Loops over YEAR, STATE, SCHL, and COW values to create all possible categories 
+  # from the ACS 1 year survey for each year of data
+  for(j in 1:length(STATE)){
+    # Similar to dis_year but for state identifiers
+    dis_state <- STATE[j]
+     
+     for(k in 1:length(SCHL)){
+       # Similar to dis_year but for years of schooling
+       dis_schl <- SCHL[k]
+       
+       for(l in 1:length(COW)){
+         # Similar to dis_year but for class of worker
+         dis_COW <- COW[l]
+         
+         # Creates a temporary data frame containing values for a certain year and 
+         # STATE/SCHL/COW combination, then transforms the WAGP term into an integer
+         temp.data <- filter(census.data,COW == dis_COW & SCHL == dis_schl & ST == dis_state)
+         temp.data$WAGP <- as.integer(temp.data$WAGP)
+         
+         # Creates a mean WAGP value for the category
+         dis_wagp <- round(mean(temp.data$WAGP),digits=0)
+         
+         # Handles the NaN case
+         if(is.nan(dis_wagp)){
+           dis_wagp <- NA
+         }
+         
+         # Creates a row vector for binding to census.usable data frame
+         newor <- c(dis_year,dis_state,dis_schl,dis_COW,dis_wagp)
+         # Applies the new row to the census.usable data frame
+         census.usable <- rbind(census.usable,newor)
+       }
+     }
+   }
+   
+   # Names the census.usable data frame columns
+   colnames(census.usable) <- c("YEAR", "STATE", "SCHL","COW","WAGP")
+   # Saves the census.usable frame and the census data for a certain year
+   save(census.usable,file = "censususable.Rda")
+   save(census.data,file = paste("censusdata(",i,").Rda",sep = ""))
+ }
 # It worked... whew lol
 
 ################################################################################
-# Manipulation of census.usbale to allow for analysis
+# Creation of census.usable to allow for analysis
 ################################################################################
 # Creates a new census.usable to allow for more mutation of the raw census data
 for(i in YEAR){
@@ -135,6 +134,28 @@ for(i in YEAR){
 # Applies appropriate labels to the census.usable data frame
 colnames(census.usable) <- c("YEAR", "STATE", "SCHL","COW")
 
+################################################################################
+# Manipulation of Raw Census Data for uniformity
+################################################################################
+for(i in YEAR){
+  target_file <- paste(datapath,"/censusdata(",i,").Rda",sep="")
+  load(target_file)
+  # Converts 2017 and later ACS survey results to the numerical responses consistent
+  # With 2016 and prior data files
+  if(i >= 2017){
+    # Replaces bb and b values in SCHL and COW, respectively, with 0
+    census.data$SCHL[census.data$SCHL=="bb"] <- "0"
+    census.data$COW[census.data$COW=="b"] <- "0"
+    # Converts to integer and then back to character to remove leading 0's
+    census.data$SCHL <- as.character(as.integer(census.data$SCHL))
+    census.data$COW <- as.character(as.integer(census.data$COW))
+  }
+  save(census.data,file = paste("censusdata(",i,").Rda",sep = ""))
+}
+
+################################################################################
+# Populate the census.usable data frame from raw census data
+################################################################################
 # Creates calculated WAGP values from raw census data to apply to census.usable
 bad_cow <- c("")
 bad_schl <- c("")
@@ -150,16 +171,6 @@ for(i in 1:nrow(census.usable)){
     # If false, loads the census data for the appropriate year
     target_file <- paste(datapath,"/censusdata(",tar_year,").Rda",sep="")
     load(target_file)
-    # Converts 2017 and later ACS survey results to the numerical responses consistent
-    # With 2016 and prior data files
-    if(tar_year >= 2017){
-      # Replaces bb and b values in SCHL and COW, respectively, with 0
-      census.data$SCHL[census.data$SCHL=="bb"] <- "0"
-      census.data$COW[census.data$COW=="b"] <- "0"
-      # Converts to integer and then back to character to remove leading 0's
-      census.data$SCHL <- as.character(as.integer(census.data$SCHL))
-      census.data$COW <- as.character(as.integer(census.data$COW))
-    }
   }
   
   # Creates variables for filtering of raw census data from the category of current iteration
@@ -186,13 +197,47 @@ for(i in 1:nrow(census.usable)){
   cat_count <- nrow(temp.data)
   cat_mean <- round(mean(temp.data$WAGP),digits = 0)
   
-  # Adds the calculated values to the census.usable data frame
-  census.usable$WAGP <- cat_mean
-  census.usable$WAGP.SUM <- cat_sum
-  census.usable$CATEGORY.COUNT <- cat_count
+  # Adds the calculated values to the census.usable data frame for the specific row
+  census.usable$WAGP[i] <- cat_mean
+  census.usable$WAGP.SUM[i] <- cat_sum
+  census.usable$CATEGORY.COUNT[i] <- cat_count
 }
 
 # Saves the census.usable data frame 
+census.usable$STATE <- as.character(as.integer(census.usable$STATE))
 save(census.usable,file = "censususable.Rda")
-nrow(census.usable[census.usable$WAGP.CouNT==0])
 
+################################################################################
+# Creates data frame for first relationship of interest -
+# HS Graduate average earnings across all worker classes and per pupil primary
+# and secondary education spending, indexed by year and state
+################################################################################
+# Imports the CCD survey data for state primary and secondary education expenses (2010-2019)
+education.expense <- read.csv(file = paste(datapath,"/Education Expendatures by State (2010-2019).csv",sep = ""),header = T)
+
+# Primes the list of state codes
+STATE <- unique(education.expense$State.Code)
+# Creates data frame to hold data of interest
+expend_schl16 <- data.frame()
+# Identifies the education level of interest (16 = HS diploma)
+ed_level <- "16"
+
+# Iterates over all state/year combinations and adds the average wage (WAGP) and the
+# per pupil education expense for the specific state/year combination from the education.expense
+# data frame
+for(i in STATE){
+  for(j in YEAR){
+    # Calculates the average total wage for workers that have worked (excludes COW = "0") and that is
+    # of education level 16 for the specific state/year combination
+    total_wage <- round(mean(census.usable$WAGP[census.usable$YEAR==j & census.usable$STATE==i & census.usable$SCHL==ed_level & census.usable$COW!="0"]),digits = 0)
+    # Pulls the per pupil state funding from the education.expense data frame
+    state_expend <- education.expense[education.expense$State.Code==i, paste("X",j,sep="")]
+    # Adds a new row to the expend_schl16 data frame with the index information and
+    # the calculated values of interest
+    expend_schl16 <- rbind(expend_schl16,c(i,j,total_wage,state_expend))
+  }
+}
+# Applies appropriate names to the expend_schl16 data frame and saves the file for
+# later use
+colnames(expend_schl16) <- c("STATE","YEAR","WAGP","EXPENDITURE")
+save(expend_schl16, file = paste(datapath,"/expenditures for education lvl 16.Rda",sep = ""))
