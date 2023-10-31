@@ -16,11 +16,13 @@ library(estimatr)
 library(vtable)
 library(car)
 library(multcomp)
+library(ggpubr)
 
 # Prepares file path variables
-datafolder <- "~/Documents/GitHub/eco530/Exercise 4/data"
-scriptsfolder <- "~/Documents/GitHub/eco530/Exercise 4/scripts"
-tablesfigures <- "~/Documents/GitHub/eco530/Exercise 4/tables and figures"
+exercisepath <- "F:/Users/Devan/Documents/Education/ECO530/eco530/Exercise 4"
+datapath <- "F:/Users/Devan/Documents/Education/ECO530/eco530/Exercise 4/data"
+scriptpath <- "F:/Users/Devan/Documents/Education/ECO530/eco530/Exercise 4/scripts"
+tablesfigurespath <- "F:/Users/Devan/Documents/Education/ECO530/eco530/Exercise 4/tables and figures"
 
 # Prepares graph color palettes
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
@@ -31,9 +33,9 @@ cbPalettet <- c("#99999950", "#E69F0050", "#56B4E950", "#009E7350", "#F0E44250",
 ################################################################################
 # Note: Food expenditure (food.expend) is the outcome (dependent) variable for 
 # the following works
-
+setwd(exercisepath)
 # Loads the provided nica.rbd data frame into the global environment
-load(paste(datafolder,"nicaRBD.RData",sep = "/"))
+load(paste(datapath,"nicaRBD.RData",sep = "/"))
 
 # Create new data frame that has:
 #   1) No missing values (N/A or otherwise)
@@ -45,6 +47,10 @@ load(paste(datafolder,"nicaRBD.RData",sep = "/"))
 temp.data <- nica.rbd %>% dplyr::select(food.expend,land,hadloan,crop)
 # Ensures that there are no NA values in the new e4.data data frame
 e4.data <- na.omit(temp.data)
+# Converts the crop variable into integers 1-4
+e4.data$crop <- as.integer(e4.data$crop)
+# Converts the crop variable bac into a factor with the appropriate labels
+e4.data$crop <- factor(e4.data$crop,levels = c(1,2,3,4),labels = c("Beans","Livestock","Sesame","Casava"))
 # I also ran the summary table command on the e4.data data set to ensure that the
 # hadloan, land, and food.expend variables did not contain any obviously coded
 # 'blank' values (such as 999). No such values were observed, so I conclude that
@@ -62,9 +68,24 @@ e4.data.table
 # Question 2
 ################################################################################
 # Creates model for the relationship of land and food.expend using linear regression
-# with heteroskedastic robust standard errors
-model.q2 <- lm_robust(food.expend~land,data = e4.data,se_type = "HC1")
+model.q2.basic <- lm(food.expend~land,data = e4.data)
 
+# Creates vectors of residuals and fitted model values
+residuals.q2 <- resid(model.q2.basic)
+fitted.q2 <- fitted(model.q2.basic)
+# Combines the above vectors into a data frame for plotting
+fitted.resid.q2 <- data.frame(residuals.q2,fitted.q2)
+# Creates a plot of residuals versus fitted values that I will use for determining
+# if a heteroskedastic robust standard error model is appropriate
+plot.res.q2 <- ggplot(fitted.resid.q2,aes(x=fitted.q2,y=residuals.q2)) + geom_point() + 
+                xlab("Food Expenditures (Fitted)") + ylab("Residuals") + geom_abline(intercept = 0,slope = 0)
+# Publishes plot
+plot.res.q2
+
+# Given that the above plot shows that the errors in a standard linear regression have
+# non-constant, decreasing (in magnitude) residuals. Thus, I chose to use a heteroskedasticity
+# robust model for the final relationship
+model.q2 <- lm_robust(food.expend~land,data = e4.data,se_type = "HC1")
 # Creates variables for the slope and intercept for model.q2
 slope.q2 <- model.q2$coefficients[2]
 intercept.q2 <- model.q2$coefficients[1]
@@ -72,11 +93,15 @@ intercept.q2 <- model.q2$coefficients[1]
 # linear regression relationship estimated in model.1 as a line
 plot.q2 <- ggplot(e4.data,aes(x=land,y=food.expend)) +
             geom_point() + geom_abline(slope = slope.q2,
-                                       intercept = intercept.q2)
+                                       intercept = intercept.q2)+
+  xlab("Land (Manzanas)") + ylab("Food Expenditures (2005 USD)")
+
 # Publishes plot
 plot.q2
 
-
+# Creates a model summary for this question
+model.list <- list("Q2" = model.q2)
+modelsummary(model.list,title = "food.expend",output = "kableExtra",gof_map = "nobs") %>% kable_classic()
 
 ################################################################################
 # Question 3
@@ -85,28 +110,100 @@ plot.q2
 # land, this time conditioned on whether the individual had taken a loan (hadloan)
 model.q3 <- lm_robust(food.expend~land+hadloan,data = e4.data,se_type = "HC1")
 
-# Creates the slope values for the conditions hadloan = 1 (slope.q3.1) and 
-# hadloan = 0 (slope.q3.2)
+# Creates the slope value
 slope.q3 <- model.q3$coefficients[2]
 # Creates a variable for the intercept for model.q3. The intercepts are varied
 # depending on whether hadloan = 1 (intercept.q3.1) or hadloan = 0 (intercept.q3.2)
 intercept.q3.1 <- model.q3$coefficients[1] + model.q3$coefficients[3]
-intercept.q3.2 <- model.q3$coefficients[1]
-# Creates 2 plots for the new linear estimate - one that contains the data 
-# points from e4.data (plot.q3.1) and one that is only the estimated relationship
-# of land and food.expend conditioned on hadloan (plot.q3.2)
+intercept.q3.0 <- model.q3$coefficients[1]
+# Creates a plot showing the estimates on food.expend with or without loan access
 plot.q3 <- ggplot(e4.data,aes(x=land,y=food.expend)) + 
-  geom_abline(aes(slope = slope.q3 ,intercept = intercept.q3.1,color=1)) +
-  geom_abline(aes(slope = slope.q3,intercept = intercept.q3.2,color=0)) + 
-  ylim(0,3000) + xlim(0,300) +
-  annotate(geom = "text",x=100,y=1500,label="hadloan = 1", color=1) +
-  annotate(geom = "text",x=100,y=2100,label="hadloan = 0")
+  geom_abline(aes(slope = slope.q3 ,intercept = intercept.q3.1,color="Had Loan")) +
+  geom_abline(aes(slope = slope.q3,intercept = intercept.q3.0,color="No Loan")) + 
+  ylim(1000,2500) + xlim(0,300) +
+  xlab("Land (Manzanas)") + ylab("Food Expenditures (2005 USD)")
 
 # Publishes plots
 plot.q3
 
-
+# Creates a model summary for this question
+model.list <- list("Q2" = model.q2, "Q3" = model.q3)
+modelsummary(model.list,title = "food.expend",output = "kableExtra",gof_map = "nobs") %>% kable_classic()
 
 ################################################################################
 # Question 4
 ################################################################################
+# Creates a linear regression model of the relationship between food.expend and 
+# land, this time conditioned on the type of crop the individual grew (crop)
+model.q4 <- lm_robust(food.expend~land+crop,data = e4.data,se_type = "HC1")
+
+# Creates the slope value
+slope.q4 <- model.q4$coefficients[2]
+# Creates a variable for the intercept for model.q4. The intercepts are varied
+# depending on the crop value, and are labelled using the first letter of the 
+# crop intercept they represent
+intercept.q4.B <- model.q4$coefficients[1] 
+intercept.q4.L <- model.q4$coefficients[1] + model.q4$coefficients[3]
+intercept.q4.S <- model.q4$coefficients[1] + model.q4$coefficients[4]
+intercept.q4.C <- model.q4$coefficients[1] + model.q4$coefficients[5]
+# Creates a plot for all estimates of food.expend varied on crop
+plot.q4 <- ggplot(e4.data,aes(x=land,y=food.expend)) + 
+  geom_abline(aes(slope = slope.q4 ,intercept = intercept.q4.B,color="BEANS")) +
+  geom_abline(aes(slope = slope.q4,intercept = intercept.q4.L,color="LIVESTOCK")) + 
+  geom_abline(aes(slope = slope.q4,intercept = intercept.q4.S,color="SESAME")) +
+  geom_abline(aes(slope = slope.q4,intercept = intercept.q4.C,color="CASAVA")) +
+  ylim(1000,2500) + xlim(0,300) +
+  xlab("Land (Manzanas)") + ylab("Food Expenditures (2005 USD)")
+
+# Publishes plots
+plot.q4
+
+# Creates a model summary for this question
+model.list <- list("Q2" = model.q2, "Q3" = model.q3, "Q4" = model.q4)
+modelsummary(model.list,title = "food.expend",output = "kableExtra",gof_map = "nobs") %>% kable_classic()
+
+
+################################################################################
+# Question 5
+################################################################################
+# Create mutation of e4.data to allow for landxhadloan interaction variable
+e4.data <- e4.data %>% mutate(landxhadloan = land * hadloan)
+
+# Runs a heteroskadisticity robust se linear regression of food.expend on land, 
+# hadloan, and the interaction variable landxhadloan
+model.q5 <- lm_robust(food.expend~land+hadloan+landxhadloan,data = e4.data,se_type = "HC1")
+
+# Sets the slope variables for the hadloan = 0 and hadloan = 1 cases
+slope.q5.0 <- model.q5$coefficients[2]
+slope.q5.1 <- model.q5$coefficients[2] + model.q5$coefficients[4]
+# Sets the intercept variables for the hadloan = 0 and hadloan = 1 cases
+intercept.q5.0 <- model.q5$coefficients[1]
+intercept.q5.1 <- model.q5$coefficients[1] + model.q5$coefficients[3]
+
+# Creates a plot for all estimates of food.expend varied on hadloan
+plot.q5 <- ggplot(e4.data,aes(x=land,y=food.expend)) + 
+  geom_abline(aes(slope = slope.q5.1 ,intercept = intercept.q5.1,color="Had Loan")) +
+  geom_abline(aes(slope = slope.q5.0,intercept = intercept.q5.0,color="No Loan")) + 
+  ylim(1000,3000) + xlim(0,300) +
+  xlab("Land (Manzanas)") + ylab("Food Expenditures (2005 USD)")
+
+# Publishes plots
+plot.q5
+
+
+# Creates a model summary for this question
+model.list <- list("Q2" = model.q2, "Q3" = model.q3, "Q4" = model.q4, "Q5" = model.q5)
+modelsummary(model.list,title = "food.expend",output = "kableExtra",gof_map = "nobs",stars = T) %>% kable_classic()
+
+
+
+# Creates the separation for map 1 and map 2 variables for the combined coefficient plat
+map1 <- c("landxhadloan","land")
+map2 <- c("hadloan")
+# Creates the model coefficient plots for map 1 and map 2 variables
+map1.plot <-modelplot(model.q5,coef_map = map1)
+map2.plot <- modelplot(model.q5,coef_map = map2)
+# Combines the coefficient plots
+coef.plot.q4 <- ggarrange(map1.plot,map2.plot,nrow = 2,ncol = 1)
+# Publishes the plot
+coef.plot.q4

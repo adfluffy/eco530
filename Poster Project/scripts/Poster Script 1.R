@@ -1,6 +1,6 @@
 # Author: Devan Arnold
 # Date: 10/10/23
-# Updated: 10/13/23
+# Updated: 10/15/23
 #
 # Created to assist with the creation of economic analysis for a poster presentation
 # Project as part of ECO 530 offered at the University of Maine. 
@@ -16,6 +16,7 @@ library(kableExtra)
 library(ggplot2)
 library(tidycensus)
 library(sjmisc)
+library(scales)
 
 # File paths
 generalpath <- "F:/Users/Devan/Documents/Education/ECO530/eco530/Poster Project"
@@ -205,7 +206,8 @@ for(i in 1:nrow(census.usable)){
 
 # Saves the census.usable data frame 
 census.usable$STATE <- as.character(as.integer(census.usable$STATE))
-save(census.usable,file = "censususable.Rda")
+census.usable[is.nan(census.usable$WAGP),"WAGP"] <- 0
+save(census.usable,file = paste(datapath,"/censususable.Rda",sep = ""))
 
 ################################################################################
 # Creates data frame for first relationship of interest -
@@ -213,31 +215,211 @@ save(census.usable,file = "censususable.Rda")
 # and secondary education spending, indexed by year and state
 ################################################################################
 # Imports the CCD survey data for state primary and secondary education expenses (2010-2019)
+load(paste(datapath,"/censususable.Rda",sep = ""))
 education.expense <- read.csv(file = paste(datapath,"/Education Expendatures by State (2010-2019).csv",sep = ""),header = T)
-
+# Loads table of monetary conversion rates to 2010 dollars
+dollar.discounts <- read.csv(file=paste(datapath,"/Dollar Discounts.CSV",sep = ""),header = T)
 # Primes the list of state codes
 STATE <- unique(education.expense$State.Code)
 # Creates data frame to hold data of interest
-expend_schl16 <- data.frame()
+wages.edexpense <- data.frame()
 # Identifies the education level of interest (16 = HS diploma)
-ed_level <- "16"
+ed_level <- c(16:24)
+#ed_level <- as.character(ed_level)
+worker_class <- c(1:9)
+#worker_class <- as.character(worker_class)
 
 # Iterates over all state/year combinations and adds the average wage (WAGP) and the
 # per pupil education expense for the specific state/year combination from the education.expense
 # data frame
 for(i in STATE){
   for(j in YEAR){
-    # Calculates the average total wage for workers that have worked (excludes COW = "0") and that is
-    # of education level 16 for the specific state/year combination
-    total_wage <- round(mean(census.usable$WAGP[census.usable$YEAR==j & census.usable$STATE==i & census.usable$SCHL==ed_level & census.usable$COW!="0"]),digits = 0)
+    # Gets the discount factor to convert to 2010 dollars
+    discount <- dollar.discounts$Discount.Factor[dollar.discounts$Year==j]
+    # Stores the WAGP and CATEGORY.COUNT variables as vectors to allow for calculation of
+    # an average that is weighted on worker counts. The alternative would be to average
+    # the wages across each COW, but each COW has inconsistent observbation counts
+    # across state and year. As such, a weighted average on the number of observations
+    # of SCHL = 16 provides a standard not based on COW. 
+    wage_vect <- census.usable$WAGP[census.usable$YEAR==j & 
+                                      census.usable$STATE==i & 
+                                      census.usable$SCHL %in% ed_level & 
+                                      census.usable$COW %in% worker_class]
+    count_vect <- census.usable$CATEGORY.COUNT[census.usable$YEAR==j & 
+                                                 census.usable$STATE==i & 
+                                                 census.usable$SCHL %in% ed_level & 
+                                                 census.usable$COW %in% worker_class]
+    # Calculates the weighted average 
+    total_wage <- sum(wage_vect * count_vect) / sum(count_vect)
+    # Converts to 2010 dollars
+    total_wage <- total_wage * discount
+    # Rounds to nearest whole number  
+    total_wage <- round(total_wage,digits = 0)
     # Pulls the per pupil state funding from the education.expense data frame
-    state_expend <- education.expense[education.expense$State.Code==i, paste("X",j,sep="")]
+    state_expend <- education.expense[education.expense$State.Code==i, paste("Year",j,sep=".")]
+    # Converts to 2010 dollars and rounds to nearest whole number
+    state_expend <- state_expend * discount
+    state_expend <- round(state_expend,digits = 0)
     # Adds a new row to the expend_schl16 data frame with the index information and
     # the calculated values of interest
-    expend_schl16 <- rbind(expend_schl16,c(i,j,total_wage,state_expend))
+    wages.edexpense <- rbind(wages.edexpense,c(i,j,total_wage,state_expend))
   }
 }
 # Applies appropriate names to the expend_schl16 data frame and saves the file for
 # later use
-colnames(expend_schl16) <- c("STATE","YEAR","WAGP","EXPENDITURE")
-save(expend_schl16, file = paste(datapath,"/expenditures for education lvl 16.Rda",sep = ""))
+colnames(wages.edexpense) <- c("STATE","YEAR","WAGP","EXPENDITURE")
+save(wages.edexpense, file = paste(datapath,"/expenditures for education lvl 16.Rda",sep = ""))
+
+# NOTE: Above code has be replaced in usage by the earningByEducation function
+
+################################################################################
+# Below section is for the creation of graphics based on previously prepared data
+################################################################################
+# Uses the earningsByEducation function to create a data frame containing wages
+# by state and year for the specific year range (default 2010-2019) and for the 
+# desired COW and SCHL codes. Below code is run with min SCHL of 16 for HS diploma
+# and min COW of 1 to exclude persons that have never worked due to age. 
+
+# Plot 1
+wages.edexpense <- data.frame()
+wages.edexpense <- earningsByEducation(min_cow = 1)
+
+wages.edexpense$ST.CODE <- as.integer(wages.edexpense$ST.CODE)
+wages.edexpense$WAGP <- as.integer(wages.edexpense$WAGP)
+wages.edexpense$EXPENDITURE <- as.integer(wages.edexpense$EXPENDITURE)
+
+
+
+x_max <- ceiling(max(wages.edexpense$EXPENDITURE)/1000)*1000
+x_min <- floor(min(wages.edexpense$EXPENDITURE)/1000)*1000
+
+x_step <- (x_max - x_min)/8
+x_scale <- seq(x_min,x_max,x_step)
+
+y_max <- ceiling(max(wages.edexpense$WAGP)/1000)*1000
+y_min <- floor(min(wages.edexpense$WAGP)/1000)*1000
+
+y_step <- (y_max - y_min)/10
+y_scale <- seq(y_min,y_max,y_step)
+
+plot1 <- ggplot(data = wages.edexpense,aes(x=EXPENDITURE,y=WAGP)) + 
+  geom_point() + 
+  labs(title = "Figure 1:\nWages and Primary/Secondary Education Expenditures by State (2010-2019)",
+       subtitle = "All Education Levels") +
+  scale_x_continuous(name = "Education Expenditure per Pupil",
+                     labels = dollar_format(),
+                     limits = c(x_scale[1],x_scale[length(x_scale)]),
+                     breaks = x_scale) +
+  scale_y_continuous(name = "Average Annual Wages",
+                     labels = dollar_format(),
+                     limits = c(y_scale[1],y_scale[length(y_scale)]),
+                     breaks = y_scale)
+
+plot1
+
+# Plot 2
+wages.edexpense <- data.frame()
+wages.edexpense <- earningsByEducation(min_education = 16,min_cow = 1)
+
+wages.edexpense$ST.CODE <- as.integer(wages.edexpense$ST.CODE)
+wages.edexpense$WAGP <- as.integer(wages.edexpense$WAGP)
+wages.edexpense$EXPENDITURE <- as.integer(wages.edexpense$EXPENDITURE)
+
+
+y_max <- ceiling(max(wages.edexpense$WAGP)/1000)*1000
+y_min <- floor(min(wages.edexpense$WAGP)/1000)*1000
+
+y_step <- (y_max - y_min)/10
+y_scale <- seq(y_min,y_max,y_step)
+
+plot2 <- ggplot(data = wages.edexpense,aes(x=EXPENDITURE,y=WAGP)) + 
+            geom_point() + 
+            labs(title="Figure 2:\nWages and Primary/Secondary Education Expenditures by State (2010-2019)",
+                 subtitle = "High School Diploma holders and higher Educational Attainment") +
+            scale_x_continuous(name = "Education Expenditure per Pupil",
+                               labels = dollar_format(),
+                               limits = c(x_scale[1],x_scale[length(x_scale)]),
+                               breaks = x_scale) +
+            scale_y_continuous(name = "Average Annual Wages",
+                               labels = dollar_format(),
+                               limits = c(y_scale[1],y_scale[length(y_scale)]),
+                               breaks = y_scale)
+
+plot2
+
+# Plot 3
+wages.edexpense <- data.frame()
+wages.edexpense <- earningsByEducation(min_education = 21,min_cow = 1)
+
+wages.edexpense$ST.CODE <- as.integer(wages.edexpense$ST.CODE)
+wages.edexpense$WAGP <- as.integer(wages.edexpense$WAGP)
+wages.edexpense$EXPENDITURE <- as.integer(wages.edexpense$EXPENDITURE)
+
+
+y_max <- ceiling(max(wages.edexpense$WAGP)/1000)*1000
+y_min <- floor(min(wages.edexpense$WAGP)/1000)*1000
+
+y_step <- (y_max - y_min)/10
+y_scale <- seq(y_min,y_max,y_step)
+
+plot3 <- ggplot(data = wages.edexpense,aes(x=EXPENDITURE,y=WAGP)) + 
+  geom_point() + 
+  labs(title="Figure 3:\nWages and Primary/Secondary Education Expenditures by State (2010-2019)",
+       subtitle = "Bachelor's Degree Recipients and higher Educational Attainment") +
+  scale_x_continuous(name = "Education Expenditure per Pupil",
+                     labels = dollar_format(),
+                     limits = c(x_scale[1],x_scale[length(x_scale)]),
+                     breaks = x_scale) +
+  scale_y_continuous(name = "Average Annual Wages",
+                     labels = dollar_format(),
+                     limits = c(y_scale[1],y_scale[length(y_scale)]),
+                     breaks = y_scale)
+
+plot3
+
+
+
+# Tables
+wages.edexpense <- data.frame()
+wages.edexpense <- earningsByEducation(min_cow = 1)
+
+wages.edexpense$ST.CODE <- as.integer(wages.edexpense$ST.CODE)
+wages.edexpense$WAGP <- as.integer(wages.edexpense$WAGP)
+wages.edexpense$EXPENDITURE <- as.integer(wages.edexpense$EXPENDITURE)
+
+
+table1 <- tapply(X=wages.edexpense$WAGP,INDEX = list(wages.edexpense$ST.NAME,wages.edexpense$YEAR),FUN = function(x) x)
+table1 <- as.table(table1) 
+kable1 <- table1 %>% kable(align = "c",
+                           caption = "Table 1: Average Annual Wages by State",
+                           format.args = list(big.mark = ","),
+                           digits = 0) 
+kable1 <- footnote(kable1,general = "Values reported in 2010 dollars\nValues are weighted mean income for workers that have entered the work force and have at least a High School Diploma or equivalent") 
+
+kable_classic_2(kable1)
+
+table2 <- tapply(X=wages.edexpense$EXPENDITURE,INDEX = list(wages.edexpense$ST.NAME,wages.edexpense$YEAR),FUN = function(x) x)
+table2 <- as.table(table2) 
+kable2 <- table2 %>% kable(align = "c",
+                           caption = "Table 2: Education Expense by State",
+                           format.args = list(big.mark = ","),
+                           digits = 0) 
+kable2 <- footnote(kable2,general = "Values reported in 2010 dollars\nValues are on a per pupil basis") 
+
+kable_classic_2(kable2)
+
+table3 <- tapply(X=wages.edexpense$WAGP,INDEX = wages.edexpense$YEAR,FUN = mean)
+table4 <- tapply(X=wages.edexpense$EXPENDITURE,INDEX = wages.edexpense$YEAR,FUN = mean)
+
+
+table5 <- cbind(table3,table4)
+table5 <- as.table(table5)
+
+kable3 <- table5 %>% kable(align = "c",
+                           caption = "Table 1: Average Wages and Educational Expense by Year",
+                           format.args = list(big.mark = ","),
+                           digits = 0,
+                           col.names = c("Average Annual Wage","Average Education Expenditure (per pupil)")) 
+kable3 <- footnote(kable3,general = "All values reported in 2010 dollars\nAnnual wages are non-weighted and by state\nEducational exspenses are a per pupil average across states") 
+
+kable_classic_2(kable3)

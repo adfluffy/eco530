@@ -1,0 +1,363 @@
+---
+title: "ECO 530 - Fall 2023 <br> \nExercise 4\n"
+author: "Devan Arnold"
+date: 'Due: Nov 3, 2023'
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+library(modelsummary)
+library(tidyverse)
+library(lmtest)
+library(sandwich)
+library(estimatr)
+library(vtable)
+library(car)
+library(multcomp)
+library(ggpubr)
+
+
+## Graph Stuff
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+cbPalettet <- c("#99999950", "#E69F0050", "#56B4E950", "#009E7350", "#F0E44250", "#0072B250", "#D55E0050", "#CC79A750")
+
+# File path stuff
+exercisepath <- "F:/Users/Devan/Documents/Education/ECO530/eco530/Exercise 4"
+datapath <- "F:/Users/Devan/Documents/Education/ECO530/eco530/Exercise 4/data"
+scriptpath <- "F:/Users/Devan/Documents/Education/ECO530/eco530/Exercise 4/scripts"
+tablesfigurespath <- "F:/Users/Devan/Documents/Education/ECO530/eco530/Exercise 4/tables and figures"
+
+```
+
+<style type="text/css">
+  body{
+  font-size: 14pt;
+}
+</style>
+
+\DeclareMathOperator{\Lagr}{\mathcal{L}}
+\DeclareMathOperator{\sumn}{\sum_{i=1}^n}
+\DeclareMathOperator{\bh}{\hat{\beta}}
+\DeclareMathOperator{\yh}{\hat{y}}
+\DeclareMathOperator{\ybar}{\bar{y}}
+\DeclareMathOperator{\xbar}{\bar{x}}
+\usepackage{amsmath}
+
+# Instructions
+
+Complete the exercises below using the Nicaragua Rural Business Development Data (NicaRBD.RData). Be sure to show all of your work. For this assignment, you can submit:
+
+- A PDF containing your written answers, tables, and figures along with the R script that generates them
+
+
+\
+
+\
+
+
+# Q1 - Prepare the Data
+**In these exercises, we are going to be working with the variables listed below. Food expenditure will serve as the outcome variable in all of your regressions. Create a data frame without missing values on these variables. Present a table of summary statistics and briefly describe the data in a paragraph.**
+
+- **food.expend - Expenditure on food measured in purchasing power parity (PPP) adjusted dollars**
+- **land - A respondent’s landholding, measured in manzanas**
+- **hadloan - Equal to one if a respondent had a loan and zero otherwise**
+- **crop - A factor variable with values 1-4 and labels “Beans”, “Livestock”, “Sesame”,and “Casava”**
+
+\
+
+```{r}
+# Note: Food expenditure (food.expend) is the outcome (dependent) variable for 
+# the following works
+setwd(exercisepath)
+# Loads the provided nica.rbd data frame into the global environment
+load(paste(datapath,"nicaRBD.RData",sep = "/"))
+
+# Create new data frame that has:
+#   1) No missing values (N/A or otherwise)
+#   2) Contains:
+#     a) food.expend
+#     b) land
+#     c) hadloan
+#     d) crop
+temp.data <- nica.rbd %>% dplyr::select(food.expend,land,hadloan,crop)
+# Ensures that there are no NA values in the new e4.data data frame
+e4.data <- na.omit(temp.data)
+# Converts the crop variable into integers 1-4
+e4.data$crop <- as.integer(e4.data$crop)
+# Converts the crop variable bac into a factor with the appropriate labels
+e4.data$crop <- factor(e4.data$crop,levels = c(1,2,3,4),labels = c("Beans","Livestock","Sesame","Casava"))
+# Creates a variable to store the final suary table output as a kable object
+e4.data.table <- sumtable(e4.data,out = "kable") %>% kable_classic()
+# Exports to the viewer
+e4.data.table
+```
+
+\
+
+The data we will be working with is based on 1,391 observations over 4 variables: food expenditure, land area, whether the individual had a loan, and the crop grown. Food expenditure is measured in 2005 USD, and ranges from \$93 to \$7,428 with a mean of \$1,480 and a standard deviation of \$860. the land variable represents the land area in manzanas that the individuals were able to work, and ranges from 0.06 to 297 with a mean of 22 and a standard deviation of 39. Had loan (hadloan) is a binary 0-1 variable to represent whether the individual had taken a loan from one of six major lenders, with a mean value of 0.24 (24% of the sample took a loan). Finally, the crop variable is a factor variable that represents the crop grown by the individual (Bean, Livestock, Sesame, Casava). Proportions can be seen in the above summary table.
+
+\
+
+\
+
+\
+
+# Q2 - A single continuous regressor
+**Estimate the relationship between food expenditure and land holding via Ordinary Least Squares. Explicitly discuss your decision regarding whether or not to use heteroskedasticity robust standard errors. Report and discuss your results. Then, as in the example, plot or sketch the relationship you estimated.**
+
+\
+
+```{r}
+# Creates model for the relationship of land and food.expend using linear regression
+model.q2.basic <- lm(food.expend~land,data = e4.data)
+
+# Creates vectors of residuals and fitted model values
+residuals.q2 <- resid(model.q2.basic)
+fitted.q2 <- fitted(model.q2.basic)
+# Combines the above vectors into a data frame for plotting
+fitted.resid.q2 <- data.frame(residuals.q2,fitted.q2)
+# Creates a plot of residuals versus fitted values that I will use for determining
+# if a heteroskedastic robust standard error model is appropriate
+plot.res.q2 <- ggplot(fitted.resid.q2,aes(x=fitted.q2,y=residuals.q2)) + geom_point() + 
+                xlab("Food Expenditures (Fitted)") + ylab("Residuals") + geom_abline(intercept = 0,slope = 0)
+# Publishes plot
+plot.res.q2
+
+```
+
+\
+
+The above plot shows the relationship between the residuals and fitted values of a linear regression model that does not attempt to correct for heteroskedastic errors. In this plot, we can see that the magnitude of the residuals decreases over the course of the model. Since these residuals are not constant in their variance, I have chosen to proceed with a heteroskadistic robust standard error model for the remainder of this analysis. 
+
+\
+
+```{r}
+# Given that the above plot shows that the errors in a standard linear regression have
+# non-constant, decreasing (in magnitude) residuals. Thus, I chose to use a heteroskedasticity
+# robust model for the final relationship
+model.q2 <- lm_robust(food.expend~land,data = e4.data,se_type = "HC1")
+# Creates variables for the slope and intercept for model.q2
+slope.q2 <- model.q2$coefficients[2]
+intercept.q2 <- model.q2$coefficients[1]
+# Creates a plot of land-food.expend using values from e4.data and includes the
+# linear regression relationship estimated in model.1 as a line
+plot.q2 <- ggplot(e4.data,aes(x=land,y=food.expend)) +
+            geom_point() + geom_abline(slope = slope.q2,
+                                       intercept = intercept.q2) +
+            xlab("Land (Manzanas)") + ylab("Food Expenditures (2005 USD)")
+# Publishes plot
+plot.q2
+```
+
+\
+
+The above plot shows the relationship between food expenditures (food.expend) and land use. This estimate shows a positive relationship between the amount of land that an individual uses and their expenditure on food. 
+
+\
+
+```{r}
+# Creates a model summary for this question
+model.list <- list("Q2" = model.q2)
+modelsummary(model.list,title = "food.expend",output = "kableExtra",gof_map = "nobs") %>% kable_classic()
+```
+
+\
+
+\
+
+\
+
+
+# Q3 - Add a binary control variable
+**Estimate the relationship between food expenditure and land holding again, this time conditioning on whether the respondent had a loan. Report and discuss your results. How do they differ from your estimates in Q2? Plot or sketch the relationship you estimated again. (Hint: You’ll need to draw two lines this time.).**
+
+\
+
+```{r}
+# Creates a linear regression model of the relationship between food.expend and 
+# land, this time conditioned on whether the individual had taken a loan (hadloan)
+model.q3 <- lm_robust(food.expend~land+hadloan,data = e4.data,se_type = "HC1")
+
+# Creates the slope value
+slope.q3 <- model.q3$coefficients[2]
+# Creates a variable for the intercept for model.q3. The intercepts are varied
+# depending on whether hadloan = 1 (intercept.q3.1) or hadloan = 0 (intercept.q3.2)
+intercept.q3.1 <- model.q3$coefficients[1] + model.q3$coefficients[3]
+intercept.q3.0 <- model.q3$coefficients[1]
+# Creates a plot showing the estimates on food.expend with or without loan access
+plot.q3 <- ggplot(e4.data,aes(x=land,y=food.expend)) + 
+  geom_abline(aes(slope = slope.q3 ,intercept = intercept.q3.1,color="Had Loan")) +
+  geom_abline(aes(slope = slope.q3,intercept = intercept.q3.0,color="No Loan")) + 
+  ylim(1000,3000) + xlim(0,300) +
+  xlab("Land (Manzanas)") + ylab("Food Expenditures (2005 USD)")
+
+# Publishes plots
+plot.q3
+```
+
+\
+
+The above plot shows a similar model as the one in Q2, however this model now has two separate intercepts - one for individuals with a loan (hadloan = 1) and one for individuals without a loan (hadloan = 0). As the plot shows, having access to a loan (hadloan = 1) results in a higher intercept on the food expenditures axis. 
+
+\
+
+```{r}
+# Creates a model summary for this question
+model.list <- list("Q2" = model.q2, "Q3" = model.q3)
+modelsummary(model.list,title = "food.expend",output = "kableExtra",gof_map = "nobs") %>% kable_classic()
+
+```
+
+\
+
+The above model summary shows numerically what was shown above graphically: there is an increase to the intercept of food expenditures that is associated with individuals receiving a loan. There is a slight reduction in the baseline intercept as compared to the model from Q2, and we also can see that having a loan is then associated with higher baseline food expenditures than seen in Q2. These adjustments are all in the context of little change for the slope associated with land use between Q2 and Q3 models. 
+
+\
+
+\
+
+\
+
+
+# Q4 - Add a categorical control variable with more levels
+ **Estimate the relationship between food expenditure and land holding again, this time conditioning on the crop a respondent produced. Report and discuss your results. Plot or sketch the relationship you estimated again.**
+
+\
+
+```{r}
+# Creates a linear regression model of the relationship between food.expend and 
+# land, this time conditioned on the type of crop the individual grew (crop)
+model.q4 <- lm_robust(food.expend~land+crop,data = e4.data,se_type = "HC1")
+
+# Creates the slope values for the conditions hadloan = 1 (slope.q4.1) and 
+# hadloan = 0 (slope.q4.2)
+slope.q4 <- model.q4$coefficients[2]
+# Creates a variable for the intercept for model.q4. The intercepts are varied
+# depending on whether hadloan = 1 (intercept.q4.1) or hadloan = 0 (intercept.q4.2)
+intercept.q4.B <- model.q4$coefficients[1] 
+intercept.q4.L <- model.q4$coefficients[1] + model.q4$coefficients[3]
+intercept.q4.S <- model.q4$coefficients[1] + model.q4$coefficients[4]
+intercept.q4.C <- model.q4$coefficients[1] + model.q4$coefficients[5]
+# Creates a plot for all estimates of food.expend varied on crop
+plot.q4 <- ggplot(e4.data,aes(x=land,y=food.expend)) + 
+  geom_abline(aes(slope = slope.q4 ,intercept = intercept.q4.B,color="BEANS")) +
+  geom_abline(aes(slope = slope.q4,intercept = intercept.q4.L,color="LIVESTOCK")) + 
+  geom_abline(aes(slope = slope.q4,intercept = intercept.q4.S,color="SESAME")) +
+  geom_abline(aes(slope = slope.q4,intercept = intercept.q4.C,color="CASAVA")) +
+  ylim(1000,2500) + xlim(0,300) +
+  xlab("Land (Manzanas)") + ylab("Food Expenditures (2005 USD)")
+
+# Publishes plots
+plot.q4
+```
+
+\
+
+As in Q3, the above plot shows the different estimates of food.expend based on land usage for the four different crops in our data (beans, livestock, sesame, and casava). We can see that beans has the lowest food expenditure intercept, followed by sesame, livestock, and casava with the highest intercept associated with it. 
+
+\
+
+```{r}
+# Creates a model summary for this question
+model.list <- list("Q2" = model.q2, "Q3" = model.q3, "Q4" = model.q4)
+modelsummary(model.list,title = "food.expend",output = "kableExtra",gof_map = "nobs") %>% kable_classic()
+```
+
+\
+
+The above summary max explicit the implicit relationships from above - we can see that beans (just the intercept term) has the lowest food expenditure intercept at \$1,102, sesame is the next highest with an intercept of \$1,555, then livestock with \$1,583, and finally casava with an intercept of \$1,621. In addition, we also see that there is a relatively large decrease in the coefficient (land). This implies that some of the association previously attributed to the amount of land individuals had access to was actually variation in the manner in which the land was utilized. 
+
+\
+
+\
+
+\
+
+
+# Q5 - Interaction terms
+
+**Estimate the specification below:**
+<center>
+$food.expend_i = β_0 + β_1land_i + β_2hadloan_i + β_3(land_i × hadloan_i) + ϵ_i$
+</center>
+
+\
+
+**There are various ways to create the interaction term that you’ll need to estimate $β_3$.You could:**
+
+ 1. **Create it by hand: use $mutate()$ to define a new variable equal to $land_i × hadloan_i$**
+ 2. **Write the equation in your $lm\_robust()$ function as $food.expend$~$land$\*$hadloan$. R will estimate the saturated model for you.**
+ 
+**I prefer Option 1, as I feel it gives me better control. Report and discuss your results. Plot or sketch the relationship you estimated. Explicitly test the hypothesis that the effect of landholding of food expenditure is the same for respondents with and without a loan. Finally, make a coefficient plot showing the estimated effect of landholding on food expenditure for respondents with and without a loan.**
+
+
+\
+
+```{r}
+# Create mutation of e4.data to allow for landxhadloan interaction variable
+e4.data <- e4.data %>% mutate(landxhadloan = land * hadloan)
+
+# Runs a heteroskadisticity robust se linear regression of food.expend on land, 
+# hadloan, and the interaction variable landxhadloan
+model.q5 <- lm_robust(food.expend~land+hadloan+landxhadloan,data = e4.data,se_type = "HC1")
+
+# Sets the slope variables for the hadloan = 0 and hadloan = 1 cases
+slope.q5.0 <- model.q5$coefficients[2]
+slope.q5.1 <- model.q5$coefficients[2] + model.q5$coefficients[4]
+# Sets the intercept variables for the hadloan = 0 and hadloan = 1 cases
+intercept.q5.0 <- model.q5$coefficients[1]
+intercept.q5.1 <- model.q5$coefficients[1] + model.q5$coefficients[3]
+
+# Creates a plot for all estimates of food.expend varied on hadloan
+plot.q5 <- ggplot(e4.data,aes(x=land,y=food.expend)) + 
+  geom_abline(aes(slope = slope.q5.1 ,intercept = intercept.q5.1,color="Had Loan")) +
+  geom_abline(aes(slope = slope.q5.0,intercept = intercept.q5.0,color="No Loan")) + 
+  ylim(1000,3000) + xlim(0,300) +
+  xlab("Land (Manzanas)") + ylab("Food Expenditures (2005 USD)")
+
+# Publishes plots
+plot.q5
+```
+\
+
+As we can see in the above plot, adding an interaction term for land and hadloan results in a more positive association between land and food expenditure for those individuals without a loan, and a higher food expenditure intercept for those individuals that did have a loan. The below model summary shows that when hadloan = 1, the relationship between food.expend and land was less steep (3.19 food.expend per unit land versus 4.825 for hadloan = 0) and had a higher intercept on the food.expend axis (\$1,479 versus $1,352 for hadloan = 0). 
+
+\
+
+```{r}
+# Creates a model summary for this question
+model.list <- list("Q2" = model.q2, "Q3" = model.q3, "Q4" = model.q4, "Q5" = model.q5)
+modelsummary(model.list,title = "food.expend",output = "kableExtra",gof_map = "nobs",stars = T) %>% kable_classic()
+```
+\
+
+For the null hypothesis that the effect of landholding on food expenditure is the same for those individuals with or without a loan, the p-values on the model summary inform us that the interaction term (landxhadloan) is statistically indifferent from 0 (for the minimum tested confidence level of $\alpha = 0.1$). This means that there we are unable to reject the null hypothesis. We can see then in the below coefficient plot that the landxhadloan term includes 0 in its range of possible values. 
+
+\
+
+```{r}
+# Creates the separation for map 1 and map 2 variables for the combined coefficient plat
+map1 <- c("landxhadloan","land")
+map2 <- c("hadloan")
+# Creates the model coefficient plots for map 1 and map 2 variables
+map1.plot <-modelplot(model.q5,coef_map = map1)
+map2.plot <- modelplot(model.q5,coef_map = map2)
+# Combines the coefficient plots
+coef.plot.q4 <- ggarrange(map1.plot,map2.plot,nrow = 2,ncol = 1)
+# Publishes the plot
+coef.plot.q4
+```
+
+\
+
+\
+
+\
+
+
+
+
+
+
