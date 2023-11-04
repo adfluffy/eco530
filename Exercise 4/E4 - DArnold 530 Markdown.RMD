@@ -330,24 +330,45 @@ As we can see in the above plot, adding an interaction term for land and hadloan
 # Creates a model summary for this question
 model.list <- list("Q2" = model.q2, "Q3" = model.q3, "Q4" = model.q4, "Q5" = model.q5)
 modelsummary(model.list,title = "food.expend",output = "kableExtra",gof_map = "nobs",stars = T) %>% kable_classic()
+
+
+# Performs the hypothesis test on landxhadloan = 0
+linearHypothesis(model.q5,"landxhadloan = 0",test="F")
 ```
 \
 
-For the null hypothesis that the effect of landholding on food expenditure is the same for those individuals with or without a loan, the p-values on the model summary inform us that the interaction term (landxhadloan) is statistically indifferent from 0 (for the minimum tested confidence level of $\alpha = 0.1$). This means that there we are unable to reject the null hypothesis. We can see then in the below coefficient plot that the landxhadloan term includes 0 in its range of possible values. 
-
+The above linear hypothesis test shows that with a F-test score of 0.1875, we would fail to reject the null hypothesis that having a loan and not having a loan have the same effect on food expenditures. 
 \
 
 ```{r}
-# Creates the separation for map 1 and map 2 variables for the combined coefficient plat
-map1 <- c("landxhadloan","land")
-map2 <- c("hadloan")
-# Creates the model coefficient plots for map 1 and map 2 variables
-map1.plot <-modelplot(model.q5,coef_map = map1)
-map2.plot <- modelplot(model.q5,coef_map = map2)
-# Combines the coefficient plots
-coef.plot.q4 <- ggarrange(map1.plot,map2.plot,nrow = 2,ncol = 1)
+# Creates a data frame to store the the tidy model.q5 object
+data.q5 <- tidy(model.q5)
+#Isolates the land and landxhadloan coefficients
+df.2 <- data.frame()
+df.3 <- data.frame()
+df.2 <- rbind(df.2, data.q5[2,],data.q5[4,])
+# Populates the target data frame with the land and land + landxhadloan values
+for(i in 1:nrow(df.2)){
+  for(j in 1:(ncol(df.2)-1)){
+    if (j==1 & i==1){
+      df.3[i,j] <- "Land (No Loan)"
+    } else if(j==1 & i==2){
+      df.3[i,j] <- "Land (With Loan)"
+    } else{
+      had.loan <- i-1
+      df.3[i,j] <- df.2[1,j] + (had.loan * df.2[2,j])
+    }
+  }
+}
+# Applies names to the columns
+colnames(df.3) <- colnames(df.2[1:8])
+# Creates the coefficient plot
+coef.plot.q5 <- ggplot(df.3,aes(x=term,y=estimate)) + 
+  geom_point(aes(size = 3)) +
+  geom_errorbar(aes(ymin=conf.low,ymax=conf.high,width=0)) +
+                  coord_flip() + theme(legend.position="none")
 # Publishes the plot
-coef.plot.q4
+coef.plot.q5
 ```
 
 \

@@ -16,7 +16,7 @@ library(estimatr)
 library(vtable)
 library(car)
 library(multcomp)
-library(ggpubr)
+
 
 # Prepares file path variables
 exercisepath <- "F:/Users/Devan/Documents/Education/ECO530/eco530/Exercise 4"
@@ -196,14 +196,37 @@ model.list <- list("Q2" = model.q2, "Q3" = model.q3, "Q4" = model.q4, "Q5" = mod
 modelsummary(model.list,title = "food.expend",output = "kableExtra",gof_map = "nobs",stars = T) %>% kable_classic()
 
 
+# Performs the hypothesis test on landxhadloan = 0
+linearHypothesis(model.q5,"landxhadloan = 0",test="F")
 
-# Creates the separation for map 1 and map 2 variables for the combined coefficient plat
-map1 <- c("landxhadloan","land")
-map2 <- c("hadloan")
-# Creates the model coefficient plots for map 1 and map 2 variables
-map1.plot <-modelplot(model.q5,coef_map = map1)
-map2.plot <- modelplot(model.q5,coef_map = map2)
-# Combines the coefficient plots
-coef.plot.q4 <- ggarrange(map1.plot,map2.plot,nrow = 2,ncol = 1)
+
+# Creates a data frame to store the the tidy model.q5 object
+data.q5 <- tidy(model.q5)
+#Isolates the land and landxhadloan coefficients
+df.2 <- data.frame()
+df.3 <- data.frame()
+df.2 <- rbind(df.2, data.q5[2,],data.q5[4,])
+# Populates the target data frame with the land and land + landxhadloan values
+for(i in 1:nrow(df.2)){
+  for(j in 1:(ncol(df.2)-1)){
+    if (j==1 & i==1){
+      df.3[i,j] <- "Land (No Loan)"
+    } else if(j==1 & i==2){
+      df.3[i,j] <- "Land (With Loan)"
+    } else{
+      had.loan <- i-1
+      df.3[i,j] <- df.2[1,j] + (had.loan * df.2[2,j])
+    }
+  }
+}
+# Applies names to the columns
+colnames(df.3) <- colnames(df.2[1:8])
+
+# Creates the coefficient plot
+coef.plot.q5 <- ggplot(df.3,aes(x=term,y=estimate)) + 
+  geom_point(aes(size = 3)) +
+  geom_errorbar(aes(ymin=conf.low,ymax=conf.high,width=0)) + ylim(-1,8) + 
+                  coord_flip() + theme(legend.position="none")
 # Publishes the plot
-coef.plot.q4
+coef.plot.q5
+
